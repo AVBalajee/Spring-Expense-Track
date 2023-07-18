@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .expense-form,
+        .filter-form,
+        .expense-list {
+            background-color: #fff;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .expense-form h2,
+        .filter-form h2,
+        .expense-list h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .expense-list {
+            max-width: 800px;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .expense-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .expense-item .description {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .expense-item .category {
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .expense-item .amount {
+            font-size: 18px;
+        }
+
+        /* Responsive Styles */
+
+        @media (max-width: 600px) {
+            .expense-form,
+            .filter-form,
+            .expense-list {
+                margin: 10px auto;
+                padding: 10px;
+            }
+
+            .expense-list {
+                max-width: 100%;
+            }
+
+            .expense-item {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Expense Tracker</h1>
+
+<div class="expense-form">
+    <h2>Add Expense</h2>
+    <form id="expenseForm">
+        <input type="hidden" id="expenseId">
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" id="description" required>
+        </div>
+        <div class="form-group">
+            <label for="category">Category:</label>
+            <input type="text" id="category" required>
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="date">Date:</label>
+            <input type="date" id="date" required>
+        </div>
+        <button type="submit">Add</button>
+        <button type="button" id="updateButton" style="display: none;">Update</button>
+        <button type="button" id="cancelButton" style="display: none;">Cancel</button>
+    </form>
+</div>
+
+<div class="filter-form">
+    <h2>Filter Expenses</h2>
+    <form id="filterForm">
+        <div class="form-group">
+            <label for="filterCategory">Category:</label>
+            <select id="filterCategory">
+                <option value="">All</option>
+                <option value="Food">Food</option>
+                <option value="Travel">Travel</option>
+                <option value="Shopping">Shopping</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="filterStartDate">Start Date:</label>
+            <input type="date" id="filterStartDate">
+        </div>
+        <div class="form-group">
+            <label for="filterEndDate">End Date:</label>
+            <input type="date" id="filterEndDate">
+        </div>
+        <button type="submit">Filter</button>
+    </form>
+</div>
+
+<div class="expense-list">
+    <h2>Expense List</h2>
+    <ul id="expenseList"></ul>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var expenseForm = document.getElementById('expenseForm');
+        var expenseList = document.getElementById('expenseList');
+        var updateButton = document.getElementById('updateButton');
+        var cancelButton = document.getElementById('cancelButton');
+
+        var expenses = [];
+
+        expenseForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var expenseId = document.getElementById('expenseId').value;
+            var description = document.getElementById('description').value;
+            var category = document.getElementById('category').value;
+            var amount = parseFloat(document.getElementById('amount').value);
+            var date = document.getElementById('date').value;
+
+            if (expenseId) {
+                // Update existing expense
+                var expenseIndex = expenses.findIndex(function(expense) {
+                    return expense.id === expenseId;
+                });
+
+                if (expenseIndex !== -1) {
+                    expenses[expenseIndex] = {
+                        id: expenseId,
+                        description: description,
+                        category: category,
+                        amount: amount,
+                        date: date
+                    };
+                }
+            } else {
+                // Add new expense
+                var newExpense = {
+                    id: Date.now().toString(),
+                    description: description,
+                    category: category,
+                    amount: amount,
+                    date: date
+                };
+
+                expenses.push(newExpense);
+            }
+
+            renderExpenses();
+
+            expenseForm.reset();
+            cancelButton.style.display = 'none';
+            updateButton.style.display = 'none';
+        });
+
+        expenseList.addEventListener('click', function(event) {
+            if (event.target.classList.contains('edit-button')) {
+                var expenseId = event.target.getAttribute('data-id');
+
+                var expense = expenses.find(function(expense) {
+                    return expense.id === expenseId;
+                });
+
+                if (expense) {
+                    document.getElementById('expenseId').value = expense.id;
+                    document.getElementById('description').value = expense.description;
+                    document.getElementById('category').value = expense.category;
+                    document.getElementById('amount').value = expense.amount;
+                    document.getElementById('date').value = expense.date;
+
+                    updateButton.style.display = 'inline-block';
+                    cancelButton.style.display = 'inline-block';
+                }
+            } else if (event.target.classList.contains('delete-button')) {
+                var expenseId = event.target.getAttribute('data-id');
+
+                var expenseIndex = expenses.findIndex(function(expense) {
+                    return expense.id === expenseId;
+                });
+
+                if (expenseIndex !== -1) {
+                    expenses.splice(expenseIndex, 1);
+                }
+
+                renderExpenses();
+            }
+        });
+
+        cancelButton.addEventListener('click', function() {
+            expenseForm.reset();
+            cancelButton.style.display = 'none';
+            updateButton.style.display = 'none';
+        });
+
+        function renderExpenses() {
+            expenseList.innerHTML = '';
+
+            expenses.forEach(function(expense) {
+                var expenseItem = document.createElement('li');
+                expenseItem.className = 'expense-item';
+                expenseItem.innerHTML = `
+                        <div class="description">${expense.description}</div>
+                        <div class="category">${expense.category}</div>
+                        <div class="amount">$${expense.amount.toFixed(2)}</div>
+                        <div class="date">${expense.date}</div>
+                        <div>
+                            <button class="edit-button" data-id="${expense.id}">Edit</button>
+                            <button class="delete-button" data-id="${expense.id}">Delete</button>
+                        </div>
+                    `;
+
+                expenseList.appendChild(expenseItem);
+            });
+        }
+    });
+</script>
+</body>
+</html>
